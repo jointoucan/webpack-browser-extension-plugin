@@ -3,7 +3,7 @@
     "jsx": "react",
     "esModuleInterop": true,
     "composite": true,
-    "module": "commonjs",
+    "module": "CommonJS",
     "outDir": "dist",
     "declaration": true,
     "downlevelIteration": true,

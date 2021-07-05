@@ -13,7 +13,6 @@ export class BrowserExtensionPlugin {
   host: string
   reconnectTime: number
   autoReload: boolean
-  vendor: string
   quiet: boolean
   backgroundEntry: string
   ignoreEntries: Array<string>
@@ -32,7 +31,7 @@ export class BrowserExtensionPlugin {
    * @param {Array<string>} options.ignoreEntries string of entries not to reload
    */
   constructor({
-    port = 35729,
+    port = 9090,
     host = 'localhost',
     reconnectTime = 3000,
     autoReload = true,
@@ -146,7 +145,6 @@ export class BrowserExtensionPlugin {
     if (this.autoReload) {
       const { compileClient } = this
       const boundCompileClient = compileClient.bind(this)
-      const { name } = this.constructor
       if (
         Array.isArray(compiler.options.entry) ||
         typeof compiler.options.entry !== 'object'

@@ -20,17 +20,31 @@ import { AnyPortMessage } from './types'
   function setupContainer() {
     container.id = 'web-extension-auto-reload'
     container.style.position = 'fixed'
-    container.style.backgroundColor = '#222'
+    container.style.backgroundColor = '#444'
     container.style.fontSize = '12px'
     container.style.borderRadius = '8px'
-    container.style.color = '#fff'
-    container.style.margin = '8px'
+    container.style.color = '#efefef'
+    container.style.margin = '16px'
     container.style.padding = '8px'
     container.style.bottom = '0'
-    container.style.right = '0'
-    container.style.zIndex = '10000'
+    container.style.left = '0'
+    container.style.zIndex = '2147483647'
+    container.style.boxShadow = '0 3px 5px rgba(0,0,0,0.3)'
+    container.style.transition = 'all 0.3s ease-in-out'
+    container.style.transform = 'translateX(-100px)'
+    container.style.opacity = '0'
     container.textContent = 'auto reload'
     document.body.appendChild(container)
+  }
+
+  function showMessage(msg: string, timeout: number = 3000) {
+    container.textContent = msg
+    container.style.transform = 'translateX(0px)'
+    container.style.opacity = '1'
+    setTimeout(() => {
+      container.style.transform = 'translateX(-100px)'
+      container.style.opacity = '0'
+    }, timeout)
   }
 
   /**
@@ -94,10 +108,10 @@ import { AnyPortMessage } from './types'
         attemptReload(message.changedFiles)
         break
       case 'compile':
-        container.textContent = 'compiling'
+        showMessage('compiling')
         break
       case 'afterCompile':
-        container.textContent = 'done'
+        showMessage('done')
         break
       default:
         break
@@ -125,6 +139,7 @@ import { AnyPortMessage } from './types'
       chunks.includes(entryName),
     )
 
+    console.log(JSON.stringify(changedFiles))
     if (!effectsEntry) {
       log('ignoring update')
       return
