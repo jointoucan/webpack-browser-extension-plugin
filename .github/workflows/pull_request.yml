@@ -1,0 +1,20 @@
+on: push
+name: Test Workflow
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@master
+      - name: Setup container
+        uses: actions/setup-node@v1
+        with:
+          node-version: '12.x'
+      - name: Install Yarn
+        run: npm install yarn --global
+      - name: Yarn install
+        run: yarn
+      - name: Run build
+        run: yarn build
+      - name: Run tests
+        run: yarn test
