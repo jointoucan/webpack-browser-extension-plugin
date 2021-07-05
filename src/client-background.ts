@@ -160,8 +160,6 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
       chunks.includes(entryName),
     )
 
-    console.log(changedFiles)
-
     // Full reload manifest changed
     if (changedFiles.some(file => file.filePath.includes('manifest.json'))) {
       reloadExtension('manifest updated')
