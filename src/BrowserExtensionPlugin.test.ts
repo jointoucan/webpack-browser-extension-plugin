@@ -7,6 +7,7 @@ describe('BrowserExtensionPlugin', () => {
   let compilerMock
   beforeEach(() => {
     compilerMock = {
+      fileTimestamps: new Map(),
       hooks: {
         watchRun: {
           tapPromise: jest.fn(),
