@@ -22,6 +22,8 @@ Although there are a few other plugins out there, most of them get in the way wh
 You will want to add this plugin to the plugin array in your webpack config.
 
 ```javascript
+import { BrowserExtensionPlugin } from 'webpack-browser-extension-plugin'
+
 {
   plugins: [
     new BrowserExtensionPlugin({
@@ -35,11 +37,11 @@ You will want to add this plugin to the plugin array in your webpack config.
 
 In the example above we are setting a few options.
 
-**autoReload**: This tells the plugin to run the socket server, should only be done in development and when you are watching files.
+- **autoReload**: This tells the plugin to run the socket server, should only be done in development and when you are watching files.
 
-**backgroundEntry**: This tells the plugin which entry is your background entry. This is super important because the background entry orchestrates reloading of client scripts.
+- **backgroundEntry**: This tells the plugin which entry is your background entry. This is super important because the background entry orchestrates reloading of client scripts.
 
-**ignoreEntries**: [_Optional_] This tells the plugin which entries to not inject auto reload code into. These can be scripts that are short lived or utility scripts.
+- **ignoreEntries** [_Optional_]: This tells the plugin which entries to not inject auto reload code into. These can be scripts that are short lived or utility scripts. **default: []**
 
 ### Structure of entries
 
