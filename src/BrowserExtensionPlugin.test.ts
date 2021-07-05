@@ -37,8 +37,7 @@ describe('BrowserExtensionPlugin', () => {
     expect(plugin).toBeTruthy()
   })
   it('should start a WebSocket server if autoReload is true', async () => {
-    let serverCallback
-    const serverMock = jest.fn().mockImplementation((options, callback) => {
+    const serverMock = jest.fn().mockImplementation((_options, callback) => {
       callback()
       return {
         on: jest.fn(),
