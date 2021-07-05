@@ -1,6 +1,6 @@
 {
   "name": "webpack-browser-extension-plugin",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "A webpack extension that has auto reload, and some built in tools to help webpack browser extension development.",
   "main": "dist/index.js",
   "repository": "https://github.com/jcblw/webpack-browser-extension-plugin",
