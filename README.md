@@ -12,6 +12,7 @@ Although there are a few other plugins out there, most of them get in the way wh
 
 - Inject into bundle for background process since v3 does not support loading two files in the background service worker
 - Avoid using look behind regexp to allow for usage in Safari web extensions.
+- Auto reload on change in manifest.json or locales.
 
 > Note: This has not yet been tested on Safari, and pretty sure it might not still work due to xcode compilation issues.
 
@@ -64,6 +65,9 @@ Different plugins work a bit differently. This plugin essentially uses the backg
 
 ## Additional options
 
+- **manifestPath** [_optional_]: This tells the plugin where the manifest is located.
+- **onCompileManifest** [_optional_]: This is a function that is called when the manifest is compiled and you can do any additional processing of the manifest.
+- **localesDirectory** [_optional_]: This is the directory that contains the locale files.
 - **port** [_optional_]: the port for the socket server to listen on. **port: 9090**
 - **host** [_optional_]: the host string that the socket server is served from. **default: localhost**
 - **reconnectTime** [_optional_]: the time the plugin waits to re-establish connections to socket server and browser ports. **default: 3000**
