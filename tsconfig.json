@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "jsx": "react",
+    "esModuleInterop": true,
+    "composite": true,
+    "module": "commonjs",
+    "outDir": "dist",
+    "declaration": true,
+    "downlevelIteration": true,
+    "moduleResolution": "node",
+    "lib": ["es2019", "dom"],
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "rootDir": "src",
+    "typeRoots": ["./node_modules/@types"]
+  },
+  "dir": "src",
+  "include": ["./src"],
+  "exclude": ["node_modules", "dist", "src/**/*.test.ts"]
+}

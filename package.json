@@ -1,0 +1,36 @@
+{
+  "name": "webpack-browser-extension-plugin",
+  "version": "1.0.0",
+  "description": "A webpack extension that has auto reload, and some built in tools to help webpack browser extension development.",
+  "main": "dist/index.js",
+  "repository": "https://github.com/jcblw/webpack-browser-extension-plugin",
+  "author": "Jacob Lowe <jacoblowe2.0@gmail.com>",
+  "license": "MIT",
+  "private": false,
+  "files": [
+    "dist/*.js",
+    "dist/*.d.ts",
+    "dist/**/*.js",
+    "dist/**/*.d.ts"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "prepublish": "yarn build",
+    "test": "jest",
+    "lint": "eslint -c ./.eslintrc.js ./src/**/*.ts"
+  },
+  "devDependencies": {
+    "@types/chrome": "^0.0.145",
+    "@types/firefox-webext-browser": "^82.0.0",
+    "@types/node": "^16.0.0",
+    "@types/webpack": "4",
+    "@types/ws": "^7.4.6",
+    "jest": "^27.0.6",
+    "prettier": "^2.3.2",
+    "typescript": "^4.3.5"
+  },
+  "dependencies": {
+    "webpack-inject-plugin": "^1.5.5",
+    "ws": "^7.5.2"
+  }
+}
