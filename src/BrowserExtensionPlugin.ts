@@ -1,12 +1,9 @@
 import path from 'path'
-import fs from 'fs'
-import { promisify } from 'util'
+import fs from 'fs-extra'
 import InjectPlugin, { ENTRY_ORDER } from 'webpack-inject-plugin'
 import WebSocket from 'ws'
 import { compileTemplate } from './compileTemplate'
 import type webpack from 'webpack'
-
-const pReadFile = promisify(fs.readFile)
 
 export class BrowserExtensionPlugin {
   port: number
@@ -19,6 +16,11 @@ export class BrowserExtensionPlugin {
   server: WebSocket.Server | null
   startTime: number
   prevFileTimestamps: Map<string, number>
+  manifestFilePath?: string
+  onCompileManifest?: (
+    manifest: browser._manifest.ManifestBase,
+  ) => Promise<browser._manifest.ManifestBase>
+  localeDirectory?: string
 
   /**
    * @param {object} options a set of options that allows you to configure this plugin
@@ -38,6 +40,9 @@ export class BrowserExtensionPlugin {
     quiet = false,
     backgroundEntry = 'background',
     ignoreEntries = [],
+    manifestFilePath,
+    localeDirectory,
+    onCompileManifest,
   }: {
     port?: number
     host?: string
@@ -46,6 +51,11 @@ export class BrowserExtensionPlugin {
     quiet?: boolean
     backgroundEntry?: string
     ignoreEntries?: Array<string>
+    manifestFilePath?: string
+    localeDirectory?: string
+    onCompileManifest?: (
+      manifest: browser._manifest.ManifestBase,
+    ) => Promise<browser._manifest.ManifestBase>
   }) {
     // Apply Settings
     this.port = port
@@ -55,6 +65,9 @@ export class BrowserExtensionPlugin {
     this.quiet = quiet
     this.backgroundEntry = backgroundEntry
     this.ignoreEntries = ignoreEntries
+    this.manifestFilePath = manifestFilePath
+    this.localeDirectory = localeDirectory
+    this.onCompileManifest = onCompileManifest
 
     // Set some defaults
     this.server = null
@@ -65,7 +78,7 @@ export class BrowserExtensionPlugin {
   /**
    * Install plugin (install hooks)
    */
-  apply(compiler: webpack.Compiler) {
+  async apply(compiler: webpack.Compiler) {
     const { name } = this.constructor
     if (this.autoReload) {
       compiler.hooks.watchRun.tapPromise(name, this.watchRun.bind(this))
@@ -73,13 +86,32 @@ export class BrowserExtensionPlugin {
       compiler.hooks.afterCompile.tap(name, this.afterCompile.bind(this))
       compiler.hooks.done.tap(name, this.done.bind(this))
       this.addClient(compiler)
+      if (this.manifestFilePath) {
+        await this.compileManifest(compiler)
+      }
+      if (this.localeDirectory) {
+        await this.syncLocales(compiler)
+      }
     }
   }
 
   /**
    * Webpack watchRun hook only ran when autoReload is on
    */
-  watchRun() {
+  async watchRun(compiler: webpack.Compiler) {
+    const changedFiles = Array.from(
+      this.getChangedFiles(compiler.fileTimestamps).keys(),
+    ) as string[]
+
+    // Compile manifest when it changes
+    if (changedFiles.some(file => file.includes('manifest.json'))) {
+      await this.compileManifest(compiler)
+    }
+
+    if (changedFiles.some(file => file.includes('_locales'))) {
+      await this.syncLocales(compiler)
+    }
+
     return this.startServer()
   }
 
@@ -100,8 +132,14 @@ export class BrowserExtensionPlugin {
   /**
    * Webpack afterCompile hook only ran when autoReload is on
    */
-  afterCompile() {
+  afterCompile(compilation: webpack.compilation.Compilation) {
     this.notifyExtension({ action: 'afterCompile' })
+    if (this.manifestFilePath) {
+      compilation.fileDependencies.add(path.resolve(this.manifestFilePath))
+    }
+    if (this.localeDirectory) {
+      compilation.contextDependencies.add(path.resolve(this.localeDirectory))
+    }
   }
 
   notifyExtension(data: { [key: string]: any }) {
@@ -134,6 +172,42 @@ export class BrowserExtensionPlugin {
   log(...args: any[]) {
     if (!this.quiet) {
       console.log('webpack-webextension-plugin', ...args)
+    }
+  }
+
+  /**
+   * compiles the manifest file using an external hook
+   */
+  async compileManifest(compiler: webpack.Compiler) {
+    if (this.manifestFilePath) {
+      try {
+        let manifest = JSON.parse(
+          await fs.readFile(this.manifestFilePath, 'utf8'),
+        ) as browser._manifest.ManifestBase
+
+        if (this.onCompileManifest) {
+          manifest = await this.onCompileManifest(manifest)
+        }
+
+        await fs.writeFile(
+          path.resolve(compiler.outputPath, 'manifest.json'),
+          JSON.stringify(manifest, null, 2),
+        )
+      } catch (err) {
+        this.log(`failed to compile manifest: ${err.message}`)
+      }
+    }
+  }
+
+  /**
+   * Sync locales with webpack
+   */
+  async syncLocales(compiler: webpack.Compiler) {
+    if (this.localeDirectory) {
+      await fs.copySync(
+        this.localeDirectory,
+        path.resolve(compiler.outputPath, './_locales'),
+      )
     }
   }
 
@@ -196,7 +270,7 @@ export class BrowserExtensionPlugin {
       __dirname,
       isBackground ? 'client-background.js' : 'client.js',
     )
-    const clientBuffer = await pReadFile(clientPath, 'utf8')
+    const clientBuffer = await fs.readFile(clientPath, 'utf8')
 
     // // Inject settings
     const client = compileTemplate(clientBuffer, {
@@ -228,22 +302,8 @@ export class BrowserExtensionPlugin {
     })
   }
 
-  /**
-   * Get the changed files since
-   * last compilation
-   */
-  extractChangedFiles(stats: webpack.Stats) {
+  getChangedFiles(fileTimestamps: Map<string, number>) {
     const changedFiles = new Map()
-    // @ts-ignore options is not in types
-    const { fileTimestamps, options } = stats.compilation
-    // TODO: this probably needs better type checking
-    const projectChunks =
-      stats
-        .toJson()
-        .chunks?.flatMap(chunk =>
-          chunk.modules?.filter(({ name }) => !name.includes('node_modules')),
-        ) ?? []
-
     for (const [watchFile, timestamp] of fileTimestamps.entries()) {
       const isFile = Boolean(path.extname(watchFile))
       if (
@@ -254,6 +314,24 @@ export class BrowserExtensionPlugin {
         changedFiles.set(watchFile, timestamp)
       }
     }
+    return changedFiles
+  }
+
+  /**
+   * Get the changed files since
+   * last compilation
+   */
+  extractChangedFiles(stats: webpack.Stats) {
+    // @ts-ignore options is not in types
+    const { fileTimestamps, options } = stats.compilation
+    const changedFiles = this.getChangedFiles(fileTimestamps)
+    // TODO: this probably needs better type checking
+    const projectChunks =
+      stats
+        .toJson()
+        .chunks?.flatMap(chunk =>
+          chunk.modules?.filter(({ name }) => !name.includes('node_modules')),
+        ) ?? []
 
     this.prevFileTimestamps = fileTimestamps
 

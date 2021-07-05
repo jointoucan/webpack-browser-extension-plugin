@@ -133,7 +133,7 @@ import { AnyPortMessage } from './types'
    * @param {Array<{ fileName: string; chunks: Array<string>}>} changedFiles
    */
   function attemptReload(
-    changedFiles: Array<{ fileName: string; chunks: Array<string> }>,
+    changedFiles: Array<{ filePath: string; chunks: Array<string> }>,
   ) {
     const effectsEntry = changedFiles.some(({ chunks }) =>
       chunks.includes(entryName),
@@ -148,7 +148,7 @@ import { AnyPortMessage } from './types'
     // Just reload current page
     log(
       `reloading because files changed [${changedFiles
-        .map(file => file.fileName)
+        .map(file => file.filePath)
         .join(', ')}]`,
     )
     window.location.reload()

@@ -52,7 +52,7 @@ describe('BrowserExtensionPlugin', () => {
     })
     // Mocking behaviors of webpack
     plugin.apply(compilerMock)
-    await plugin.watchRun()
+    await plugin.watchRun(compilerMock)
 
     expect(serverMock).toBeCalled()
   })
