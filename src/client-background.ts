@@ -145,7 +145,7 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
    * @param {Array<{ fileName: string; chunks: Array<string>}>} changedFiles
    */
   function attemptReload(
-    changedFiles: Array<{ fileName: string; chunks: Array<string> }>,
+    changedFiles: Array<{ filePath: string; chunks: Array<string> }>,
   ) {
     // TODO send a message to tabs from here, to indicate they need a reload if changed
     log('Checking to see if we need to reload')
@@ -161,20 +161,20 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
     )
 
     // Full reload manifest changed
-    if (changedFiles.some(file => file.fileName === 'manifest.json')) {
+    if (changedFiles.some(file => file.filePath.includes('manifest.json'))) {
       reloadExtension('manifest updated')
       return
     }
 
     // Full reload if _locales changed
-    if (changedFiles.some(file => /^_locales\//.test(file.fileName))) {
+    if (changedFiles.some(file => file.filePath.includes('_locales'))) {
       reloadExtension('locales updated')
       return
     }
 
     // Full reload if manifest deps changed
     const manifestDeps = getManifestFileDeps()
-    if (changedFiles.some(file => manifestDeps.includes(file.fileName))) {
+    if (changedFiles.some(file => manifestDeps.includes(file.filePath))) {
       reloadExtension('manifest dependency updated')
       return
     }

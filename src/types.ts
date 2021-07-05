@@ -5,7 +5,7 @@ export type AnyUniversalMessage =
   | { action: 'afterCompile' }
   | {
       action: 'reload'
-      changedFiles: Array<{ fileName: string; chunks: string[] }>
+      changedFiles: Array<{ filePath: string; chunks: string[] }>
     }
 
 export type AnyServerMessage = AnyUniversalMessage

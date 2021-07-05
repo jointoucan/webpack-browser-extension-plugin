@@ -1,6 +1,6 @@
 {
   "name": "webpack-browser-extension-plugin",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "A webpack extension that has auto reload, and some built in tools to help webpack browser extension development.",
   "main": "dist/index.js",
   "repository": "https://github.com/jcblw/webpack-browser-extension-plugin",
@@ -27,6 +27,7 @@
     "@babel/preset-typescript": "^7.14.5",
     "@types/chrome": "^0.0.145",
     "@types/firefox-webext-browser": "^82.0.0",
+    "@types/fs-extra": "^9.0.11",
     "@types/jest": "^26.0.23",
     "@types/node": "^16.0.0",
     "@types/webpack": "4",
@@ -36,6 +37,7 @@
     "typescript": "^4.3.5"
   },
   "dependencies": {
+    "fs-extra": "^10.0.0",
     "webpack-inject-plugin": "^1.5.5",
     "ws": "^7.5.2"
   }
