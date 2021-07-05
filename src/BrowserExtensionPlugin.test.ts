@@ -7,6 +7,7 @@ describe('BrowserExtensionPlugin', () => {
   let compilerMock
   beforeEach(() => {
     compilerMock = {
+      fileTimestamps: new Map(),
       hooks: {
         watchRun: {
           tapPromise: jest.fn(),
@@ -36,8 +37,7 @@ describe('BrowserExtensionPlugin', () => {
     expect(plugin).toBeTruthy()
   })
   it('should start a WebSocket server if autoReload is true', async () => {
-    let serverCallback
-    const serverMock = jest.fn().mockImplementation((options, callback) => {
+    const serverMock = jest.fn().mockImplementation((_options, callback) => {
       callback()
       return {
         on: jest.fn(),
@@ -52,7 +52,7 @@ describe('BrowserExtensionPlugin', () => {
     })
     // Mocking behaviors of webpack
     plugin.apply(compilerMock)
-    await plugin.watchRun()
+    await plugin.watchRun(compilerMock)
 
     expect(serverMock).toBeCalled()
   })
