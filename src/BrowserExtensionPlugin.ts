@@ -86,12 +86,12 @@ export class BrowserExtensionPlugin {
       compiler.hooks.afterCompile.tap(name, this.afterCompile.bind(this))
       compiler.hooks.done.tap(name, this.done.bind(this))
       this.addClient(compiler)
-      if (this.manifestFilePath) {
-        await this.compileManifest(compiler)
-      }
-      if (this.localeDirectory) {
-        await this.syncLocales(compiler)
-      }
+    }
+    if (this.manifestFilePath) {
+      await this.compileManifest(compiler)
+    }
+    if (this.localeDirectory) {
+      await this.syncLocales(compiler)
     }
   }
 
