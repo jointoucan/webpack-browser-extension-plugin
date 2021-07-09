@@ -1,4 +1,5 @@
 import path from 'path'
+import https from 'https'
 import fs from 'fs-extra'
 import InjectPlugin, { ENTRY_ORDER } from 'webpack-inject-plugin'
 import WebSocket from 'ws'
@@ -17,6 +18,9 @@ export class BrowserExtensionPlugin {
   startTime: number
   prevFileTimestamps: Map<string, number>
   manifestFilePath?: string
+  cert?: Buffer
+  key?: Buffer
+  isSecure: boolean
   onCompileManifest?: (
     manifest: browser._manifest.ManifestBase,
   ) => Promise<browser._manifest.ManifestBase>
@@ -43,6 +47,8 @@ export class BrowserExtensionPlugin {
     manifestFilePath,
     localeDirectory,
     onCompileManifest,
+    key,
+    cert,
   }: {
     port?: number
     host?: string
@@ -53,6 +59,8 @@ export class BrowserExtensionPlugin {
     ignoreEntries?: Array<string>
     manifestFilePath?: string
     localeDirectory?: string
+    key: Buffer
+    cert: Buffer
     onCompileManifest?: (
       manifest: browser._manifest.ManifestBase,
     ) => Promise<browser._manifest.ManifestBase>
@@ -68,6 +76,9 @@ export class BrowserExtensionPlugin {
     this.manifestFilePath = manifestFilePath
     this.localeDirectory = localeDirectory
     this.onCompileManifest = onCompileManifest
+    this.isSecure = !!(key && cert)
+    this.key = key
+    this.cert = cert
 
     // Set some defaults
     this.server = null
@@ -156,12 +167,23 @@ export class BrowserExtensionPlugin {
   startServer() {
     return new Promise((resolve, reject) => {
       if (!this.autoReload || this.server) return resolve(this.server)
-      const { host, port } = this
-      this.server = new WebSocket.Server({ port }, () => {
-        this.log(`listens on ws://${host}:${port}`)
-        resolve(this.server)
-      })
-      this.server.on('error', reject)
+      const { host, port, key, cert } = this
+      if (key && cert) {
+        const server = https.createServer({ key, cert })
+        this.server = new WebSocket.Server({
+          server,
+        })
+        server.listen(port, host, () => {
+          this.log(`listens on wss://${host}:${port}`)
+          resolve(this.server)
+        })
+      } else {
+        this.server = new WebSocket.Server({ port, host }, () => {
+          this.log(`listens on ws://${host}:${port}`)
+          resolve(this.server)
+        })
+        this.server.on('error', reject)
+      }
       return true
     })
   }
@@ -280,6 +302,7 @@ export class BrowserExtensionPlugin {
       quiet: this.quiet,
       entryName,
       isBackground,
+      isSecure: this.isSecure,
     })
 
     return client

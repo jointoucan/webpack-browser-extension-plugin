@@ -6,6 +6,7 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
   const quiet = /* PLACEHOLDER-QUIET */ false /* PLACEHOLDER-QUIET */
   const entryName =
     /* PLACEHOLDER-ENTRYNAME */ 'anon' /* PLACEHOLDER-ENTRYNAME */
+  const isSecure = /* PLACEHOLDER-ISSECURE */ false /* PLACEHOLDER-ISSECURE */
   const fileRegex = /[^"]*\.[a-zA-Z]+/g
   const extension = getWebExtensionApis()
   const connections: (chrome.runtime.Port | browser.runtime.Port)[] = []
@@ -54,7 +55,9 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
    * Connect to the server
    */
   function connect() {
-    const connection = new WebSocket(`ws://${host}:${port}`)
+    const connection = new WebSocket(
+      `${isSecure ? 'wss' : 'ws'}://${host}:${port}`,
+    )
     connection.onopen = () => {
       log('Connected')
     }
