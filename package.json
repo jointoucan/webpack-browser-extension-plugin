@@ -29,6 +29,7 @@
     "@types/firefox-webext-browser": "^82.0.0",
     "@types/fs-extra": "^9.0.11",
     "@types/jest": "^26.0.23",
+    "@types/klaw": "^3.0.2",
     "@types/node": "^16.0.0",
     "@types/webpack": "4",
     "@types/ws": "^7.4.6",
@@ -38,6 +39,7 @@
   },
   "dependencies": {
     "fs-extra": "^10.0.0",
+    "klaw": "^3.0.0",
     "webpack-inject-plugin": "^1.5.5",
     "ws": "^7.5.2"
   }
