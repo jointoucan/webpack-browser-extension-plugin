@@ -10,6 +10,8 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
   const fileRegex = /[^"]*\.[a-zA-Z]+/g
   const extension = getWebExtensionApis()
   const connections: (chrome.runtime.Port | browser.runtime.Port)[] = []
+  const alwaysFullReload =
+    /* PLACEHOLDER-ALWAYSFULLRELOAD */ false /* PLACEHOLDER-ALWAYSFULLRELOAD */
 
   connect()
 
@@ -184,6 +186,10 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
 
     if (!effectsEntry) {
       // Broadcast change to clients in case a files changed in them
+      if (alwaysFullReload) {
+        reloadExtension('always full reload on')
+        return
+      }
       broadcastMessage({ action: 'reload', changedFiles })
       log('ignoring update')
       return
