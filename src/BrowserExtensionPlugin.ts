@@ -1,11 +1,11 @@
 import path from 'path'
 import https from 'https'
 import fs from 'fs-extra'
+import walk from 'klaw'
 import InjectPlugin, { ENTRY_ORDER } from 'webpack-inject-plugin'
 import WebSocket from 'ws'
 import { compileTemplate } from './compileTemplate'
 import type webpack from 'webpack'
-
 export class BrowserExtensionPlugin {
   port: number
   host: string
@@ -98,11 +98,24 @@ export class BrowserExtensionPlugin {
       compiler.hooks.done.tap(name, this.done.bind(this))
       this.addClient(compiler)
     }
-    if (this.manifestFilePath) {
-      await this.compileManifest(compiler)
+    compiler.hooks.emit.tapPromise(name, this.emit.bind(this))
+  }
+
+  /**
+   * emit add file to the emit that is happening to make sure the files are emitted at the correct hook
+   */
+  async emit(compilation: webpack.compilation.Compilation) {
+    const manifest = await this.compileManifest(compilation.compiler)
+    const locales = await this.getLocales(compilation.compiler)
+
+    if (manifest) {
+      compilation.assets['manifest.json'] = manifest
     }
-    if (this.localeDirectory) {
-      await this.syncLocales(compiler)
+
+    if (locales) {
+      locales.forEach(locale => {
+        compilation.assets[locale.file] = locale.asset
+      })
     }
   }
 
@@ -120,7 +133,7 @@ export class BrowserExtensionPlugin {
     }
 
     if (changedFiles.some(file => file.includes('_locales'))) {
-      await this.syncLocales(compiler)
+      await this.getLocales(compiler)
     }
 
     return this.startServer()
@@ -145,12 +158,6 @@ export class BrowserExtensionPlugin {
    */
   afterCompile(compilation: webpack.compilation.Compilation) {
     this.notifyExtension({ action: 'afterCompile' })
-    if (this.manifestFilePath) {
-      compilation.fileDependencies.add(path.resolve(this.manifestFilePath))
-    }
-    if (this.localeDirectory) {
-      compilation.contextDependencies.add(path.resolve(this.localeDirectory))
-    }
   }
 
   notifyExtension(data: { [key: string]: any }) {
@@ -211,26 +218,60 @@ export class BrowserExtensionPlugin {
           manifest = await this.onCompileManifest(manifest)
         }
 
-        await fs.writeFile(
-          path.resolve(compiler.outputPath, 'manifest.json'),
-          JSON.stringify(manifest, null, 2),
-        )
+        const source = JSON.stringify(manifest, null, 2)
+
+        return {
+          source: () => source,
+          size: () => source.length,
+        }
       } catch (err) {
         this.log(`failed to compile manifest: ${err.message}`)
       }
     }
+    return null
   }
 
   /**
    * Sync locales with webpack
    */
-  async syncLocales(compiler: webpack.Compiler) {
-    if (this.localeDirectory) {
-      await fs.copySync(
-        this.localeDirectory,
-        path.resolve(compiler.outputPath, './_locales'),
-      )
+  async getLocales(compiler: webpack.Compiler) {
+    const { localeDirectory } = this
+    if (localeDirectory) {
+      const files = await this.getFilesInDirectory(localeDirectory)
+      return files.map(file => ({
+        file: `_locales/${path.relative(localeDirectory, file)}`,
+        asset: {
+          source: () => fs.readFileSync(file, 'utf8'),
+          size: () => fs.statSync(file).size,
+        },
+      }))
     }
+    return []
+  }
+
+  async getFilesInDirectory(directory: string): Promise<Array<string>> {
+    return new Promise((resolve, reject) => {
+      const files: Array<string> = []
+      walk(directory, {
+        filter: item => {
+          const basename = path.basename(item)
+          return basename === '.' || basename[0] !== '.'
+        },
+      })
+        .on('data', file => {
+          const path = file.path
+          const isFile = file.stats.isFile()
+          if (isFile) {
+            files.push(path)
+          }
+        })
+        .on('end', () => {
+          resolve(files)
+        })
+        .on('error', err => {
+          reject(err)
+        })
+    })
   }
 
   /**
