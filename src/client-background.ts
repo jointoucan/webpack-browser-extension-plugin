@@ -1,4 +1,9 @@
-import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
+import {
+  AnyPortMessage,
+  AnyServerMessage,
+  BrowserPort,
+  BrowserVendors,
+} from './types'
 ;(function webextensionAutoReload() {
   const host = /* PLACEHOLDER-HOST */ 'localhost' /* PLACEHOLDER-HOST */
   const port = /* PLACEHOLDER-PORT */ 35729 /* PLACEHOLDER-PORT */
@@ -12,6 +17,8 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
   const connections: (chrome.runtime.Port | browser.runtime.Port)[] = []
   const alwaysFullReload =
     /* PLACEHOLDER-ALWAYSFULLRELOAD */ false /* PLACEHOLDER-ALWAYSFULLRELOAD */
+  const vendor: BrowserVendors =
+    /* PLACEHOLDER-VENDOR */ 'chrome' /* PLACEHOLDER-VENDOR */
 
   connect()
 
@@ -22,6 +29,25 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
     connections.forEach(port => {
       port.postMessage(message)
     })
+  }
+
+  const isTruthyNumber = (value: number | undefined): value is number => {
+    return !!value
+  }
+
+  /**
+   *
+   * @returns {Array<string>}
+   */
+  function reloadTabs() {
+    const api = getWebExtensionApis()
+    // Reload connected tabs
+    connections
+      .map(port => port.sender?.tab?.id)
+      .filter(isTruthyNumber)
+      .forEach(id => {
+        api.tabs.reload(id)
+      })
   }
 
   function getWebExtensionApis() {
@@ -135,8 +161,18 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
       log(`reloading extension because ${reason}`)
     }
     const message = { action: 'backgroundReload', reason } as const
-    broadcastMessage(message)
-    extension.runtime.reload()
+    /**
+     * If Firefox or manifest based content scripts, we need to reload the entire extension
+     * Broadcasting a message is still preferred, since it will only reload pages based on the
+     * asset that changed and if the script is using it.
+     */
+    if (vendor === 'firefox') {
+      extension.runtime.reload()
+      reloadTabs()
+    } else {
+      broadcastMessage(message)
+      extension.runtime.reload()
+    }
   }
 
   /**
@@ -186,7 +222,7 @@ import { AnyPortMessage, AnyServerMessage, BrowserPort } from './types'
 
     if (!effectsEntry) {
       // Broadcast change to clients in case a files changed in them
-      if (alwaysFullReload) {
+      if (alwaysFullReload || vendor === 'firefox') {
         reloadExtension('always full reload on')
         return
       }

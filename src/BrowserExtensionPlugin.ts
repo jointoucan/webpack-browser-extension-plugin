@@ -5,14 +5,8 @@ import InjectPlugin, { ENTRY_ORDER } from 'webpack-inject-plugin'
 import WebSocket from 'ws'
 import { compileTemplate } from './compileTemplate'
 import type webpack from 'webpack'
+import { BrowserVendors } from './types'
 
-type BrowserVendors =
-  | 'chrome'
-  | 'safari'
-  | 'firefox'
-  | 'edge'
-  | 'opera'
-  | 'unknown'
 export class BrowserExtensionPlugin {
   vendor: BrowserVendors
   port: number
@@ -322,6 +316,7 @@ export class BrowserExtensionPlugin {
       isSecure: this.isSecure,
       // Firefox caching on programmatic injection is pretty strong so we need to clear it
       alwayFullReload: this.vendor === 'firefox' || hasManifestContentScripts,
+      vendor: this.vendor,
     })
 
     return client
