@@ -13,3 +13,11 @@ export type AnyServerMessage = AnyUniversalMessage
 export type AnyPortMessage =
   | AnyUniversalMessage
   | { action: 'backgroundReload'; reason: string }
+
+export type BrowserVendors =
+  | 'chrome'
+  | 'safari'
+  | 'firefox'
+  | 'edge'
+  | 'opera'
+  | 'unknown'

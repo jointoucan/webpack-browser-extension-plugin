@@ -5,8 +5,10 @@ import InjectPlugin, { ENTRY_ORDER } from 'webpack-inject-plugin'
 import WebSocket from 'ws'
 import { compileTemplate } from './compileTemplate'
 import type webpack from 'webpack'
+import { BrowserVendors } from './types'
 
 export class BrowserExtensionPlugin {
+  vendor: BrowserVendors
   port: number
   host: string
   reconnectTime: number
@@ -18,6 +20,7 @@ export class BrowserExtensionPlugin {
   startTime: number
   prevFileTimestamps: Map<string, number>
   manifestFilePath?: string
+  manifest?: any
   cert?: Buffer
   key?: Buffer
   isSecure: boolean
@@ -28,6 +31,7 @@ export class BrowserExtensionPlugin {
 
   /**
    * @param {object} options a set of options that allows you to configure this plugin
+   * @param {string} options.vendor the browser vendor of the extension
    * @param {number} options.port the port to listen on
    * @param {string} options.host the host to listen on
    * @param {number} options.reconnectTime the amount of time it will attempt to reconnect
@@ -49,6 +53,7 @@ export class BrowserExtensionPlugin {
     onCompileManifest,
     key,
     cert,
+    vendor,
   }: {
     port?: number
     host?: string
@@ -61,6 +66,7 @@ export class BrowserExtensionPlugin {
     localeDirectory?: string
     key: Buffer
     cert: Buffer
+    vendor?: BrowserVendors
     onCompileManifest?: (
       manifest: browser._manifest.ManifestBase,
     ) => Promise<browser._manifest.ManifestBase>
@@ -79,7 +85,7 @@ export class BrowserExtensionPlugin {
     this.isSecure = !!(key && cert)
     this.key = key
     this.cert = cert
-
+    this.vendor = vendor ?? 'unknown'
     // Set some defaults
     this.server = null
     this.startTime = Date.now()
@@ -203,17 +209,17 @@ export class BrowserExtensionPlugin {
   async compileManifest(compiler: webpack.Compiler) {
     if (this.manifestFilePath) {
       try {
-        let manifest = JSON.parse(
+        this.manifest = JSON.parse(
           await fs.readFile(this.manifestFilePath, 'utf8'),
         ) as browser._manifest.ManifestBase
 
         if (this.onCompileManifest) {
-          manifest = await this.onCompileManifest(manifest)
+          this.manifest = await this.onCompileManifest(this.manifest)
         }
 
         await fs.writeFile(
           path.resolve(compiler.outputPath, 'manifest.json'),
-          JSON.stringify(manifest, null, 2),
+          JSON.stringify(this.manifest, null, 2),
         )
       } catch (err) {
         this.log(`failed to compile manifest: ${err.message}`)
@@ -294,6 +300,11 @@ export class BrowserExtensionPlugin {
     )
     const clientBuffer = await fs.readFile(clientPath, 'utf8')
 
+    const hasManifestContentScripts =
+      this.manifest &&
+      'content_scripts' in this.manifest &&
+      this.manifest.content_scripts.length > 0
+
     // // Inject settings
     const client = compileTemplate(clientBuffer, {
       port: this.port,
@@ -303,6 +314,9 @@ export class BrowserExtensionPlugin {
       entryName,
       isBackground,
       isSecure: this.isSecure,
+      // Firefox caching on programmatic injection is pretty strong so we need to clear it
+      alwayFullReload: this.vendor === 'firefox' || hasManifestContentScripts,
+      vendor: this.vendor,
     })
 
     return client
